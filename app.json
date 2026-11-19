@@ -1,0 +1,9 @@
+{
+  "expo": {
+    "name": "SafeSpace AI",
+    "slug": "safespace-ai",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light"
+  }
+}
