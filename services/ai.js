@@ -1,46 +1,29 @@
-const API_URL = 'https://text.pollinations.ai/';
-
-const SYSTEM_PROMPT = `
-You are a warm, empathetic, non-judgmental listening companion inside a mental wellness app. 
-Your goal is to help the user feel heard, validated, and less alone when nobody else is around.
-
-Guidelines:
-- Use active listening: reflect back what they are feeling and ask gentle, open-ended questions.
-- Keep responses conversational, supportive, and easy to read (2-4 sentences max).
-- Do not diagnose medical conditions or act as a licensed therapist.
-- If the user expresses thoughts of self-harm, suicide, or severe crisis, immediately encourage them to reach out to a trusted person or contact the 988 Suicide & Crisis Lifeline (call or text 988 in the US/Canada, or find local resources at findahelpline.com).
-`;
+const SYSTEM_PROMPT = `You are a warm, empathetic, non-judgmental listening companion inside a mental wellness app. Help the user feel heard, validated, and less alone. Keep responses supportive, conversational, and 2-4 sentences max. Do not diagnose medical conditions. If the user mentions self-harm or suicide, immediately urge them to call or text 988.`;
 
 export async function getAIResponse(chatHistory) {
-  // Format the conversation so the AI remembers what was already said
-  const messages = [
-    { role: 'system', content: SYSTEM_PROMPT },
-    ...chatHistory.map((msg) => ({
-      role: msg.sender === 'user' ? 'user' : 'assistant',
-      content: msg.text,
-    })),
-  ];
-
   try {
-    const response = await fetch(API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        messages: messages,
-        model: 'openai', // Uses a fast, conversational AI model
-      }),
-    });
+    // Get the last few messages so the AI has context without making the URL too long
+    const recentChat = chatHistory
+      .slice(-4)
+      .map((msg) => `${msg.sender === 'user' ? 'User' : 'Companion'}: ${msg.text}`)
+      .join('\n');
+
+    const fullPrompt = `${SYSTEM_PROMPT}\n\nConversation so far:\n${recentChat}\nCompanion:`;
+    
+    // Encode the prompt safely into a standard GET URL
+    const encodedPrompt = encodeURIComponent(fullPrompt);
+    const url = `https://text.pollinations.ai/${encodedPrompt}`;
+
+    const response = await fetch(url);
 
     if (!response.ok) {
-      throw new Error('Server response was not ok');
+      throw new Error(`HTTP error! status: ${response.status}`);
     }
 
     const replyText = await response.text();
     return replyText.trim();
   } catch (error) {
     console.error('AI Fetch Error:', error);
-    return "I'm having a little trouble connecting right now, but I'm still here. Check your internet connection and try sending that again.";
+    return "I'm having a little trouble reaching the server right now. Try testing this on the Expo Go mobile app (scan the QR code) if you're currently on the web preview!";
   }
 }
